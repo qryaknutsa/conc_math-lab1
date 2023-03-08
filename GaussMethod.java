@@ -2,56 +2,51 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 
-import static java.lang.Float.*;
-
 public class GaussMethod {
 
-    public void to_triangle(float[][] matrix) {
+    void to_triangle(float[][] matrix) {
         int rows = matrix.length;
         int cols = matrix[0].length;
-
         for (int k = 0; k < rows; k++) {
-            System.out.println("k: " + k);
-            System.out.println("matrix[k][k]: " + matrix[k][k]);
-            boolean isReplacement = true;
-            if (matrix[k][k] == 0) {
-                System.out.println("it's 0\n___________________");
-                isReplacement = switch_rows(matrix, k);
-            }
-            System.out.println("___________________");
 
-            if (!isReplacement) {
-                return;
+
+
+
+            boolean isReplacement = true;
+            for (int i = k; i < rows; i++) {
+                int counter = 0;
+                for (int j = 0; j < rows; j++) {
+                    if (matrix[i][j] == 0) counter++;
+                }
+                if (counter < rows) {
+                    if (matrix[k][k] == 0) isReplacement = switch_rows(matrix, k);
+                    if (!isReplacement) return;
+                    break;
+                }
             }
+
 
             for (int i = 0; i < rows; i++) {
                 float to_mul;
                 if (matrix[i][k] == 0) to_mul = 0;
                 else to_mul = -matrix[i][k] / matrix[k][k];
                 for (int j = 0; j < cols; j++) {
-                    if (i <= k || j < k) {
-                        System.out.println("Continue");
-                        continue;
-                    }
-                    System.out.println("_____________\nfor [" + i + "," + j + "]\nto_mul= " + to_mul);
-                    System.out.println("a[k][j] = " + matrix[k][j]);
-                    System.out.println("a[i][j] = " + matrix[i][j]);
+                    if (i <= k || j < k) continue;
                     matrix[i][j] = matrix[i][j] + matrix[k][j] * to_mul;
-                    System.out.println("we get " + matrix[i][j] + "\n_____________");
                 }
-                System.out.println("______________________________");
-
             }
         }
     }
 
-    // пока для квадратной матрицы
     float get_determinant(float[][] matrix) {
         float det = 1;
         for (int i = 0; i < matrix.length; i++) {
+            if (matrix[i][i] == 0) {
+                det = 0;
+                break;
+            }
             det *= matrix[i][i];
         }
-        if (det == -0.0) det = 0;
         return det;
     }
 
@@ -63,7 +58,7 @@ public class GaussMethod {
             int temp = i + c == matrix.length - 1 ? c = -i : c++;
             isInf++;
         }
-        if (c != -1) shift_rows(i,c,matrix);
+        if (c != -1) shift_rows(i, c, matrix);
         return true;
     }
 
@@ -76,24 +71,24 @@ public class GaussMethod {
         }
     }
 
-    int checkRang(float[][] matrix) {
+    int check_rang(float[][] matrix) {
         int n = matrix.length;
         int zero_sum = matrix.length;
         int zero_sum_b = matrix.length;
-        for (int i = 0; i < matrix.length; i++) {
+        for (float[] floats : matrix) {
             int sum = 0;
             for (int j = 0; j < matrix.length; j++) {
-                if (matrix[i][j] == 0) sum++;
+                if (floats[j] == 0) sum++;
             }
             if (sum == n) zero_sum--;
-            if (sum == n && matrix[i][n] == 0) zero_sum_b--;
+            if (sum == n && floats[n] == 0) zero_sum_b--;
         }
         if (zero_sum != zero_sum_b) return 0;
-        else if (zero_sum == zero_sum_b && zero_sum < n) return 2;
+        else if (zero_sum < n) return 2;
         else return 1;
     }
 
-    float[] getSolution(float[][] matrix) {
+    float[] get_solution(float[][] matrix) {
         MathContext context = new MathContext(20, RoundingMode.HALF_UP);
         int rows = matrix.length - 1;
         int cols = matrix[0].length - 1;
@@ -103,14 +98,65 @@ public class GaussMethod {
                 float to_sub = 0;
                 for (int k = j; k < cols; ++k) {
                     to_sub += solutions[k] * matrix[i][k];
-//                    System.out.println("solutions[k] = " + solutions[k]);
-//                    System.out.println("matrix[i][k] = " + matrix[i][k]);
                 }
                 solutions[j] = new BigDecimal((matrix[i][cols] - to_sub) / matrix[i][j], context).floatValue();
-//                System.out.println("temp = " + solutions[j]);
                 i--;
             }
         }
         return solutions;
     }
+
+
+    float[] get_discrepancy(float[][] matrix, float[] x) {
+        MathContext context = new MathContext(20, RoundingMode.HALF_UP);
+        float[] discrepancy = new float[x.length];
+        for (int i = 0; i < matrix.length; i++) {
+            float ax = 0;
+            for (int j = 0; j < matrix.length; j++) {
+                ax += matrix[i][j] * x[j];
+            }
+            discrepancy[i] = new BigDecimal(ax - matrix[i][matrix.length], context).floatValue();
+        }
+        return discrepancy;
+    }
+
+
+    void solve(float[][] matrix) {
+
+        to_triangle(matrix);
+
+        System.out.println("\nТреугольная матрица с преобразованным столбцом B:");
+        for (int i = 0; i < matrix.length; i++) {
+            for (int m = 0; m < matrix[0].length; m++) {
+                if (m == 0 && i != 0) System.out.println();
+                if (m == matrix[0].length - 1) System.out.print(" | ");
+                System.out.printf("%4f\t", matrix[i][m]);
+
+            }
+        }
+
+        float det = get_determinant(matrix);
+        System.out.println("\n\nОпределитель: " + det);
+        int rang = check_rang(matrix);
+        if (rang == 1) {
+            float[] solution = get_solution(matrix);
+            System.out.println("\nВектор значений x:");
+            for (int i = 0; i < solution.length; i++) {
+                System.out.println("x" + i + " = " + solution[i]);
+            }
+
+
+            float[] discrepancy = get_discrepancy(matrix, solution);
+            System.out.println("\nВектор невязок:");
+            for (int i = 0; i < solution.length; i++) {
+                System.out.println("r" + i + " = " + discrepancy[i]);
+            }
+
+        } else if (rang == 2) {
+            System.out.println("\nМножество решений бесконечно.");
+        } else if (rang == 0) {
+            System.out.println("\nРешений нет.");
+        }
+    }
+
 }
